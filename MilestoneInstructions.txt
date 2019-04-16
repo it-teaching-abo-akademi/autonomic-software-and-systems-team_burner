@@ -1,0 +1,27 @@
+These milestones are the minimum requirements that need to be fulfilled. By the end of the course you need to have implemented all the points that are marked by TODO-instructions. 
+
+Milestone 1:
+To check how well your ai works, run 'ai_test.py'. If everything works properly it should guide the car and then print 'Excercise route finished' 
+- Make sure to download latest version of the excercise code (the first version was accidentally the wrong one)
+- Implement executor class (update_control function) so it can move vehicle towards given destination
+- Basic movement is to move forward (required target speed can be passed via additional_vars-parameter and retrieved from knowledge) and steer toward the given destination. To calculate angle you need dot product (np.dot(v1,v2)) between normalized vectors (normalization: https://stackoverflow.com/questions/12049154/python-numpy-vector-math )
+- Stopping at lights can be implemented by setting target speed to 0 when at lights
+- additional_vars should also be used to set the destination rotation so that vehicle could arrive at destination in a correct angle (important for turning at corners)
+- Lastly: when the road is not straight (like for example a curve when on traffic circles), there should be additional integer-parameter to define a parabola at which the card should be moving (0 for straight line, +x to curve right and -x to curve left, this is calculatred inside Planner)
+- [optional] rather than using additional_vars, you could replace this by the list of named variables so that the code is easier to read
+
+Milestone 2:
+To check how well your ai works, run 'ai_test.py -m 2'. If everything works properly it should guide the car and then print 'Excercise route finished' 
+- Implement planner so that it can plan the route to the given keypoint using waypoints
+- Create speed limit variable in knowlede ('update_data('speed_limit', 40)') and use it in Executor to define how fast the car should go
+- Implement Monitor to read whether the car is at traffic lights and upload the data into knowledge ('update_data('at_lights', True)')
+- In analyser's update-function check whether vehicle is at traffic lights and set speed_limit at 0 in case the car is in front of red light.
+
+Milestone 3:
+To check how well your ai works, run 'ai_test.py -m 3'. If everything works properly it should guide the car and then print 'Excercise route finished'. If you see 'Test FAILED', then it means your AI did not avod the vehicle that was trying to crash into it.
+- Implement Monitor to have sensors detecting what happens around the car (lidar mainly)
+- Implement Analyser function to detect that a car is 'trying' to crash into it (doing it based on lidar data is simplest).
+- Mark state as HEALING if vehicle is supposed to avoid something. Use analyser to  determine the course of actions and then in Executor implement the avoidance (implement the case for status==Status.HEALING) 
+
+Milestone 4:
+Use spawn_custom_npc to make a few hundreds of vehicles (or at least as many as your pc can handle) driving in simulation and see that the results are 'sane'.

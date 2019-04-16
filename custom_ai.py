@@ -33,9 +33,9 @@ class Autopilot(object):
     self.crashed = lambda *_, **__: None
 
   def status_updated(self, new_status):
-    if new_status == data.ARRIVED:
+    if new_status == data.Status.ARRIVED:
       self.route_finished(self)
-    if new_status == data.CRASHED:
+    if new_status == data.Status.CRASHED:
       self.crashed(self)
 
   def set_route_finished_callback(self, callback):
@@ -43,6 +43,9 @@ class Autopilot(object):
 
   def set_crash_callback(self, callback):
     self.crashed = callback
+
+  def get_vehicle(self):
+    return self.vehicle
  
   #Update all the modules and return the current status
   def update(self):

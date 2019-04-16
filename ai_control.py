@@ -4,6 +4,8 @@ import glob
 import os
 import sys
 from collections import deque
+import math
+import numpy as np
 
 try:
     sys.path.append(glob.glob('**/*%d.%d-%s.egg' % (
@@ -38,10 +40,12 @@ class Executor(object):
   # TODO: Take into account that exiting the crash site could also be done in reverse, so there might need to be additional data passed between planner and executor, or there needs to be some way to tell this that it is ok to drive in reverse during HEALING and CRASHED states. An example is additional_vars, that could be a list with parameters that can tell us which things we can do (for example going in reverse)
   def update_control(self, destination, additional_vars, delta_time):
     #calculate throttle and heading
-    self.vehicle.control.throttle = 0.0 
-    self.vehicle.control.steer = 0.0
-    self.vehicle.control.brake = 0.0
-    self.vehicle.control.hand_brake = 0.0
+    control = carla.VehicleControl()
+    control.throttle = 0.0
+    control.steer = 0.0
+    control.brake = 0.0
+    control.hand_brake = False
+    self.vehicle.apply_control(control)
 
 # Planner is responsible for creating a plan for moving around
 # In our case it creates a list of waypoints to follow so that vehicle arrives at destination
@@ -53,7 +57,7 @@ class Planner(object):
 
   # Create a map of waypoints to follow to the destination and save it
   def make_plan(self, source, destination):
-    self.path = build_path(source,destination)
+    self.path = self.build_path(source,destination)
     self.update_plan()
     self.knowledge.update_destination(self.get_current_destination())
   
@@ -67,7 +71,7 @@ class Planner(object):
     if len(self.path) == 0:
       return
     
-    if knowledge.arrived_at(self.path[0]):
+    if self.knowledge.arrived_at(self.path[0]):
       self.path.popleft()
     
     if len(self.path) == 0:
@@ -81,7 +85,7 @@ class Planner(object):
     #if we are driving, then the current destination is next waypoint
     if status == Status.DRIVING:
       #TODO: Take into account traffic lights and other cars
-      return path[0]
+      return self.path[0]
     if status == Status.ARRIVED:
       return self.knowledge.get_location()
     if status == Status.HEALING:
@@ -96,8 +100,9 @@ class Planner(object):
     return self.knowledge.get_location()
 
   #TODO: Implementation
-  def build_path(source, destination):
+  def build_path(self, source, destination):
     self.path = deque([])
+    self.path.append(destination)
     #TODO: create path of waypoints from source to
     return self.path
 

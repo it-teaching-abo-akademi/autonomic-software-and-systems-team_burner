@@ -26,7 +26,8 @@ class Monitor(object):
     self.knowledge = knowledge
     weak_self = weakref.ref(self)
     
-    self.knowledge.update_data('location', self.vehicle.get_location())
+    self.knowledge.update_data('location', self.vehicle.get_transform().location)
+    self.knowledge.update_data('rotation', self.vehicle.get_transform().rotation)
 
     world = self.vehicle.get_world()
     bp = world.get_blueprint_library().find('sensor.other.lane_detector')
@@ -36,7 +37,8 @@ class Monitor(object):
   #Function that is called at time intervals to update ai-state
   def update(self, time_elapsed):
     # Update the position of vehicle into knowledge
-    self.knowledge.update_data('location', self.vehicle.get_location())
+    self.knowledge.update_data('location', self.vehicle.get_transform().location)
+    self.knowledge.update_data('rotation', self.vehicle.get_transform().rotation)
 
   @staticmethod
   def _on_invasion(weak_self, event):

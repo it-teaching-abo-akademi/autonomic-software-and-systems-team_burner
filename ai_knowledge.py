@@ -20,13 +20,13 @@ class Status(Enum):
   DRIVING = 1
   CRASHED = 2
   HEALING = 3
-  EVADING = 4
+  UNDEFINED = 4
 
 # Class that holds the knowledge of the current state and serves as interaction point for all the modules
 class Knowledge(object):
   def __init__(self):
     self.status = Status.ARRIVED
-    self.memory = {'location':0}    
+    self.memory = {'location':carla.Vector3D(0.0,0.0,0.0)}    
     self.destination = self.get_location()
     self.status_changed = lambda *_, **__: None
     self.destination_changed = lambda *_, **__: None
@@ -65,9 +65,11 @@ class Knowledge(object):
   def get_location(self):
     return self.retrieve_data('location')
 
+  def arrived_at(self, destination):
+    return self.distance(self.get_location(),destination) < 5.0
+
   def update_destination(self, new_destination):
-    #TODO: Rather than equality, this needs to check distance (distance is bigger than 0)     
-    if self.destination != new_destination:
+    if self.distance(self.destination,new_destination) < 5.0:
       self.destination = new_destination
       self.destination_changed(new_destination)
    
@@ -76,3 +78,8 @@ class Knowledge(object):
   def update_data(self, data_name, pars):
     self.memory[data_name] = pars
     self.data_changed(data_name)
+
+  def distance(self, vec1, vec2):
+    l1 = carla.Location(vec1)
+    l2 = carla.Location(vec2)
+    return l1.distance(l2)
