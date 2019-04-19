@@ -51,8 +51,9 @@ class Knowledge(object):
     return self.destination
 
   # Retrieving data from memory
-  # !Take note that it is unsafe and does not check whether the given field is in dic
   def retrieve_data(self, data_name):
+    if data_name not in self.memory:
+      return False
     return self.memory[data_name]
 
   #updating status to correct value and making sure that everything is handled properly
@@ -69,7 +70,7 @@ class Knowledge(object):
     return self.distance(self.get_location(),destination) < 5.0
 
   def update_destination(self, new_destination):
-    if self.distance(self.destination,new_destination) < 5.0:
+    if self.distance(self.destination,new_destination) > 5.0:
       self.destination = new_destination
       self.destination_changed(new_destination)
    

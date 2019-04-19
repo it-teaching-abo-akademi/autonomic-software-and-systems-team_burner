@@ -1,4 +1,6 @@
+.gitignore
 .idea/
 Lib/
 Scripts/
 pyvenv.cfg
+PythonAPI/
