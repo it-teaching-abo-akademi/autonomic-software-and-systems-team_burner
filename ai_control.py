@@ -48,14 +48,37 @@ class Executor(object):
         control.hand_brake = False
 
         location = self.knowledge.retrieve_data('location')
+        rotation = self.knowledge.retrieve_data('rotation').yaw
         distance = location.distance(destination)
         distance = 9999.99 if distance is False else distance
-        print("Distance: {}\tDestination: {}".format(distance, destination))
+        distance_x = destination.x - location.x
+        distance_y = destination.y - location.y
+        heading = math.degrees(math.atan2(distance_y, distance_x))
+
+        if heading < 0 and rotation < 0:
+            diff = heading - rotation
+        if heading < 0 and rotation > 0:
+            diff = abs(heading) + abs(rotation)
+        if heading > 0 and rotation < 0:
+            diff = abs(heading) + abs(rotation)
+        if heading > 0 and rotation > 0:
+            diff = heading - rotation
+
+        if diff > 180: diff = 360 - diff
+
+        if abs(distance_y) > 3:
+            if diff < 0:
+                control.steer = - 0.5
+            elif diff > 0:
+                control.steer = 0.5
+
+        print("X-distance: {:3.2f}\t\tY-distance: {:3.2f}\t\tTotal distance: {:3.2f}\t\tHeading: {:3.2f}\t\t"
+              "My heading: {:3.2f}\t\tDiff: {:3.2f}".format(distance_x, distance_y, distance, heading, rotation, diff))
+
         if distance < 5:
             control.brake = 1.0
-            control.steer = 1.0
         else:
-            control.throttle = 0.5
+            control.throttle = 0.3
 
         self.vehicle.apply_control(control)
 
