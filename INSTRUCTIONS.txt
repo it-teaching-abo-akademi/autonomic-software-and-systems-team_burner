@@ -1,9 +1,0 @@
-You can (and should as that will speed up testing time) use spawn_custom_npc and manual_control as basis to write your own script for testing the implemented functionality.
-
-If you need to add or change parts of the program you are free to do so, but you should try to stay inside the confines of the selected model (ie. the modules are clearly divided into
-knowledge, monitor, analyser, planner and executor with autopilot class managing them). As 'Knowledge' is main interaction point between classes, it is expected that most classes use
-it, so you need to make usre it's architecture stays as robust as possible (which is not always possible) to accomodate new additions without getting too clogged.
-
-6. Afterwards you should implement simple planner, so that you can define a route for the car (leave crash handling for later). If planner requires data from analyser, then implement mock functions with empty output.
-7. Implement the Analyser and Monitor classes (the barebones version is inside ai_parser.py) so that you get the data from Carla and pasrse it, so that planner can do educated planning.
-8. Finally go back to planner and implement crash handling.
