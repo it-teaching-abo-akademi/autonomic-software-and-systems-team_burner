@@ -53,16 +53,14 @@ class Executor(object):
         distance = self.knowledge.retrieve_data('distance')
 
         diff = self.knowledge.retrieve_data('heading_diff')
-        # if diff < 0:
-        #     control.steer = -0.3
-        # elif diff > 0:
-        #     control.steer = 0.3
-        #
-        # if distance < 5:
-        #     control.brake = 1.0
-        # else:
-        #     control.throttle = 0.5
-        control.throttle = 1.0
+        if diff < 0:
+            control.steer = -0.3
+        elif diff > 0:
+            control.steer = 0.3
+
+        if distance > 5:
+            control.throttle = 0.5
+
         self.print_diagnostics()
         self.vehicle.apply_control(control)
 

@@ -48,6 +48,7 @@ class Monitor(object):
         self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self.vehicle)
         self.sensor.listen(lambda event: self._on_collision(weak_self, event))
 
+
     # Function that is called at time intervals to update ai-state
     def update(self, time_elapsed):
         # Update the position of vehicle into knowledge
@@ -94,8 +95,8 @@ class Analyser(object):
         return
 
     def velocity_to_speed(self, velocity):
-        speed = np.hypot(velocity.x, velocity.y)
-        return speed * 3.6
+        speed = np.hypot(velocity.x, velocity.y) * 3.6
+        return speed
 
     def calculate_XY_distances(self):
         location = self.knowledge.retrieve_data('location')
@@ -118,7 +119,10 @@ class Analyser(object):
         if diff > 180:
             diff = 360 - diff
 
-        if abs(self.knowledge.retrieve_data('distance_y')) < 3 or abs(self.knowledge.retrieve_data('distance_x')) < 3:
+        diff_treshold = 10
+        distance_y = self.knowledge.retrieve_data('distance_y')
+        distance_x = self.knowledge.retrieve_data('distance_x')
+        if min(abs(distance_y), abs(distance_x)) < diff_treshold:
             diff = 0
 
         return diff
