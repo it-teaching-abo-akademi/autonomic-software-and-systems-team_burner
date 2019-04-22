@@ -38,7 +38,10 @@ class Executor(object):
             self.update_control(dest, [1], time_elapsed)
 
     # TODO: steer in the direction of destination and throttle or brake depending on how close we are to destination
-    # TODO: Take into account that exiting the crash site could also be done in reverse, so there might need to be additional data passed between planner and executor, or there needs to be some way to tell this that it is ok to drive in reverse during HEALING and CRASHED states. An example is additional_vars, that could be a list with parameters that can tell us which things we can do (for example going in reverse)
+    # TODO: Take into account that exiting the crash site could also be done in reverse, so there might need to be additional
+    #  data passed between planner and executor, or there needs to be some way to tell this that it is ok to drive in reverse
+    #  during HEALING and CRASHED states. An example is additional_vars, that could be a list with parameters that can tell us
+    #  which things we can do (for example going in reverse)
     def update_control(self, destination, additional_vars, delta_time):
         # calculate throttle and heading
         control = carla.VehicleControl()
@@ -47,40 +50,32 @@ class Executor(object):
         control.brake = 0.0
         control.hand_brake = False
 
-        location = self.knowledge.retrieve_data('location')
-        rotation = self.knowledge.retrieve_data('rotation').yaw
-        distance = location.distance(destination)
-        distance = 9999.99 if distance is False else distance
-        distance_x = destination.x - location.x
-        distance_y = destination.y - location.y
-        heading = math.degrees(math.atan2(distance_y, distance_x))
+        distance = self.knowledge.retrieve_data('distance')
 
-        if heading < 0 and rotation < 0:
-            diff = heading - rotation
-        if heading < 0 and rotation > 0:
-            diff = abs(heading) + abs(rotation)
-        if heading > 0 and rotation < 0:
-            diff = abs(heading) + abs(rotation)
-        if heading > 0 and rotation > 0:
-            diff = heading - rotation
-
-        if diff > 180: diff = 360 - diff
-
-        if abs(distance_y) > 3:
-            if diff < 0:
-                control.steer = - 0.5
-            elif diff > 0:
-                control.steer = 0.5
-
-        print("X-distance: {:3.2f}\t\tY-distance: {:3.2f}\t\tTotal distance: {:3.2f}\t\tHeading: {:3.2f}\t\t"
-              "My heading: {:3.2f}\t\tDiff: {:3.2f}".format(distance_x, distance_y, distance, heading, rotation, diff))
+        diff = self.knowledge.retrieve_data('heading_diff')
+        if diff < 0:
+            control.steer = -0.3
+        elif diff > 0:
+            control.steer = 0.3
 
         if distance < 5:
             control.brake = 1.0
         else:
-            control.throttle = 0.3
+            control.throttle = 0.5
 
+        self.print_diagnostics()
         self.vehicle.apply_control(control)
+
+    def print_diagnostics(self):
+        distance = self.knowledge.retrieve_data('distance')
+        distance_y = self.knowledge.retrieve_data('distance_y')
+        distance_x = self.knowledge.retrieve_data('distance_x')
+        heading = self.knowledge.retrieve_data('heading')
+        speed = self.knowledge.retrieve_data('speed')
+        diff = self.knowledge.retrieve_data('heading_diff')
+
+        print("X-distance: {:3.2f}\t\tY-distance: {:3.2f}\t\tTotal distance: {:3.2f}\t\tHeading: {:3.2f}\t\t"
+              "My heading: {:3.2f}\t\tDiff: {:3.2f}\t\tSpeed: {:3.2f}".format(distance_x, distance_y, distance, heading, self.knowledge.retrieve_data('rotation').yaw, diff, speed))
 
 
 # Planner is responsible for creating a plan for moving around

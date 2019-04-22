@@ -1,10 +1,6 @@
-These milestones are the minimum requirements that need to be fulfilled. By the end of the course you need to have implemented all the points that are marked by TODO-instructions. 
-
-Milestone 1:
-To check how well your ai works, run 'ai_test.py'. If everything works properly it should guide the car and then print 'Excercise route finished' 
-- Make sure to download latest version of the excercise code (the first version was accidentally the wrong one)
 - Implement executor class (update_control function) so it can move vehicle towards given destination
-- Basic movement is to move forward (required target speed can be passed via additional_vars-parameter and retrieved from knowledge) and steer toward the given destination. To calculate angle you need dot product (np.dot(v1,v2)) between normalized vectors (normalization: https://stackoverflow.com/questions/12049154/python-numpy-vector-math )
+- Basic movement is to move forward (required target speed can be passed via additional_vars-parameter and retrieved from knowledge) and steer toward the given destination.
+    To calculate angle you need dot product (np.dot(v1,v2)) between normalized vectors (normalization: https://stackoverflow.com/questions/12049154/python-numpy-vector-math )
 - Stopping at lights can be implemented by setting target speed to 0 when at lights
 - additional_vars should also be used to set the destination rotation so that vehicle could arrive at destination in a correct angle (important for turning at corners)
 - Lastly: when the road is not straight (like for example a curve when on traffic circles), there should be additional integer-parameter to define a parabola at which the card should be moving (0 for straight line, +x to curve right and -x to curve left, this is calculatred inside Planner)
