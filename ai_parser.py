@@ -44,6 +44,9 @@ class Monitor(object):
         self.lane_detector = world.spawn_actor(bp, carla.Transform(), attach_to=self.vehicle)
         self.lane_detector.listen(lambda event: Monitor._on_invasion(weak_self, event))
 
+        bp = world.get_blueprint_library().find('sensor.other.collision')
+        self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self.vehicle)
+        self.sensor.listen(lambda event: self._on_collision(weak_self, event))
 
     # Function that is called at time intervals to update ai-state
     def update(self, time_elapsed):
@@ -65,6 +68,14 @@ class Monitor(object):
         print("################################################################# LANE INVASION")
         self.knowledge.update_data('lane_invasion', event.crossed_lane_markings)
 
+    @staticmethod
+    # Copy-&-pasted from manual_control.py
+    def _on_collision(weak_self, event):
+        self = weak_self()
+        if not self:
+            return
+        print("################################################################# COLLISION")
+        self.vehicle.destroy()  # Temporarily for getting crashed cars out of the way when tuning steering
 
 # Analyser is responsible for parsing all the data that the knowledge has received from Monitor and turning it into something usable
 # TODO: During the update step parse the data inside knowledge into information that could be used by planner to plan the route
