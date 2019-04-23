@@ -56,20 +56,19 @@ class Executor(object):
 
         distance = self.knowledge.retrieve_data('distance')
 
-        diff = self.knowledge.retrieve_data('heading_diff')
         lane_invasion = self.knowledge.retrieve_data('lane_invasion')
-        # if diff < 0:
-        #     control.steer = -0.3
-        # elif diff > 0:
-        #     control.steer = 0.3
-        speed_diff = target_speed - speed
+        heading_diff = self.knowledge.retrieve_data('heading_diff')
+        if heading_diff < 0:
+            control.steer = -0.4
+        elif heading_diff > 0:
+            control.steer = 0.4
 
+        speed_diff = target_speed - speed
         if target_speed == 0:
             control.throttle = 0.0
             control.brake = 1.0
         elif speed_diff > 0:
-            control.throttle = min((speed_diff - 5) / target_speed + 0.7, 1.0)
-
+            control.throttle = min((speed_diff - 5) / target_speed + 0.7, 1.0) - abs(control.steer / 2)
 
         self.vehicle.apply_control(control)
         self.print_diagnostics()
@@ -116,11 +115,12 @@ class Planner(object):
     def update(self, time_elapsed):
         is_at_traffic_light = self.knowledge.retrieve_data('is_at_traffic_light')
         traffic_light_state = self.knowledge.retrieve_data('traffic_light_state')
+        distance = self.knowledge.retrieve_data('distance')
 
         self.update_plan()
         self.knowledge.update_destination(self.get_current_destination())
 
-        if is_at_traffic_light and traffic_light_state == "Red":
+        if is_at_traffic_light and traffic_light_state == "Red" or distance < 5:
             self.knowledge.update_data('target_speed', 0)
         else:
             self.knowledge.update_data('target_speed', self.knowledge.retrieve_data('speed_limit'))
