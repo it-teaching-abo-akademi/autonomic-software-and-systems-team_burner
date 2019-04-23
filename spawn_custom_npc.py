@@ -28,6 +28,7 @@ import time
 
 import custom_ai as ai
 
+
 def main():
     argparser = argparse.ArgumentParser(
         description=__doc__)
@@ -74,18 +75,17 @@ def main():
             blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
             blueprints = [x for x in blueprints if not x.id.endswith('isetta')]
 
-        #This is definition of a callback function that will be called when the autopilot arrives at destination
+        # This is definition of a callback function that will be called when the autopilot arrives at destination
         def route_finished(autopilot):
             print("Vehicle arrived at destination")
-            #After vehicle has arrived we set a random spawn point as a new destination
-            #TODO: Make an 'intelligent' list of targets where cars could go (has annotated waypoints so you could use that)
+            # After vehicle has arrived we set a random spawn point as a new destination
+            # TODO: Make an 'intelligent' list of targets where cars could go (has annotated waypoints so you could use that)
             controller.set_destination(random.choice(world.get_map().get_spawn_points()))
-            #TODO, BONUS: Make fixed exit and entry points (for example parking lots), 
-            #so that cars are removed from simulation when they enter those and new ones are created from random points.
-            #use try_spawn_random_vehicle_at(random.choice(spawn_points)) to spawn new cars
-            
+            # TODO, BONUS: Make fixed exit and entry points (for example parking lots),
+            # so that cars are removed from simulation when they enter those and new ones are created from random points.
+            # use try_spawn_random_vehicle_at(random.choice(spawn_points)) to spawn new cars
 
-        #Function to spawn new vehicles
+        # Function to spawn new vehicles
         def try_spawn_random_vehicle_at(transform):
             blueprint = random.choice(blueprints)
             if blueprint.has_attribute('color'):
@@ -95,19 +95,19 @@ def main():
             vehicle = world.try_spawn_actor(blueprint, transform)
             if vehicle is not None:
                 actor_list.append(vehicle)
-                #Instead of setting default autopilot, we create our own and append it to the list of autopilots 
+                # Instead of setting default autopilot, we create our own and append it to the list of autopilots
                 autopilot = ai.Autopilot(vehicle)
-                #We also register callback to know when the vehicle has arrived at it's destination
+                # We also register callback to know when the vehicle has arrived at it's destination
                 autopilot.set_route_finished_callback(route_finished)
                 vai_list.append(autopilot)
 
-                #vehicle.set_autopilot()
+                # vehicle.set_autopilot()
                 print('spawned %r at %s' % (vehicle.type_id, transform.location))
                 return True
             return False
 
         spawn_points = list(world.get_map().get_spawn_points())
-        random.shuffle(spawn_points)	
+        random.shuffle(spawn_points)
 
         print('found %d spawn points.' % len(spawn_points))
 
@@ -121,12 +121,12 @@ def main():
 
         print('spawned %d vehicles, press Ctrl+C to exit.' % args.number_of_vehicles)
 
-        #Infinite loop to update car statuses
+        # Infinite loop to update car statuses
         while True:
-	    #This could be done in parallel with threading for better performance
+            # This could be done in parallel with threading for better performance
             for controller in vai_list:
                 status = controller.update()
-                    
+
     finally:
 
         print('\ndestroying %d actors' % len(actor_list))

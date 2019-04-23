@@ -18,6 +18,7 @@ except IndexError:
 import carla
 import ai_knowledge as data
 from ai_knowledge import Status
+from carla import TrafficLightState as tls
 
 
 # Executor is responsible for moving the vehicle around
@@ -43,6 +44,9 @@ class Executor(object):
     #  during HEALING and CRASHED states. An example is additional_vars, that could be a list with parameters that can tell us
     #  which things we can do (for example going in reverse)
     def update_control(self, destination, additional_vars, delta_time):
+        speed = self.knowledge.retrieve_data('speed')
+        target_speed = self.knowledge.retrieve_data('target_speed')
+
         # calculate throttle and heading
         control = carla.VehicleControl()
         control.throttle = 0.0
@@ -53,27 +57,45 @@ class Executor(object):
         distance = self.knowledge.retrieve_data('distance')
 
         diff = self.knowledge.retrieve_data('heading_diff')
-        if diff < 0:
-            control.steer = -0.3
-        elif diff > 0:
-            control.steer = 0.3
+        lane_invasion = self.knowledge.retrieve_data('lane_invasion')
+        # if diff < 0:
+        #     control.steer = -0.3
+        # elif diff > 0:
+        #     control.steer = 0.3
+        speed_diff = target_speed - speed
 
-        if distance > 5:
-            control.throttle = 0.5
+        if target_speed == 0:
+            control.throttle = 0.0
+            control.brake = 1.0
+        elif speed_diff > 0:
+            control.throttle = min((speed_diff - 5) / target_speed + 0.7, 1.0)
 
-        self.print_diagnostics()
+
         self.vehicle.apply_control(control)
+        self.print_diagnostics()
 
     def print_diagnostics(self):
+        current = self.vehicle.get_control()
         distance = self.knowledge.retrieve_data('distance')
         distance_y = self.knowledge.retrieve_data('distance_y')
         distance_x = self.knowledge.retrieve_data('distance_x')
         heading = self.knowledge.retrieve_data('heading')
-        speed = self.knowledge.retrieve_data('speed')
         diff = self.knowledge.retrieve_data('heading_diff')
 
-        print("X-distance: {:3.2f}\t\tY-distance: {:3.2f}\t\tTotal distance: {:3.2f}\t\tHeading: {:3.2f}\t\t"
-              "My heading: {:3.2f}\t\tDiff: {:3.2f}\t\tSpeed: {:3.2f}".format(distance_x, distance_y, distance, heading, self.knowledge.retrieve_data('rotation').yaw, diff, speed))
+        is_at_traffic_light = self.knowledge.retrieve_data('is_at_traffic_light')
+        traffic_light_state = self.knowledge.retrieve_data('traffic_light_state')
+        traffic_light_id = self.knowledge.retrieve_data('traffic_light_id')
+        speed_limit = self.knowledge.retrieve_data('speed_limit')
+        target_speed = self.knowledge.retrieve_data('target_speed')
+        speed = self.knowledge.retrieve_data('speed')
+
+        world = self.vehicle.get_world()
+        m = world.get_map()
+        w = m.get_waypoint(self.knowledge.retrieve_data('location'))
+
+        print("Target speed: {:3.2f}\t\tSpeed: {:3.2f}\t\tThrottle: {:3.2f}  Brake: {:3.2f}".format(target_speed, speed, current.throttle, current.brake))
+
+
 
 
 # Planner is responsible for creating a plan for moving around
@@ -92,8 +114,16 @@ class Planner(object):
 
     # Function that is called at time intervals to update ai-state
     def update(self, time_elapsed):
+        is_at_traffic_light = self.knowledge.retrieve_data('is_at_traffic_light')
+        traffic_light_state = self.knowledge.retrieve_data('traffic_light_state')
+
         self.update_plan()
         self.knowledge.update_destination(self.get_current_destination())
+
+        if is_at_traffic_light and traffic_light_state == "Red":
+            self.knowledge.update_data('target_speed', 0)
+        else:
+            self.knowledge.update_data('target_speed', self.knowledge.retrieve_data('speed_limit'))
 
     # Update internal state to make sure that there are waypoints to follow and that we have not arrived yet
     def update_plan(self):
