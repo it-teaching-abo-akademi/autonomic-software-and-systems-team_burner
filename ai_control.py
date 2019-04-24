@@ -4,8 +4,7 @@ import glob
 import os
 import sys
 from collections import deque
-import math
-import numpy as np
+from ai_knowledge import Status
 
 try:
     sys.path.append(glob.glob('**/*%d.%d-%s.egg' % (
@@ -14,11 +13,6 @@ try:
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
     pass
-
-import carla
-import ai_knowledge as data
-from ai_knowledge import Status
-from carla import TrafficLightState as tls
 
 
 # Executor is responsible for moving the vehicle around
@@ -38,7 +32,6 @@ class Executor(object):
             dest = self.knowledge.get_current_destination()
             self.update_control(dest, [1], time_elapsed)
 
-    # TODO: steer in the direction of destination and throttle or brake depending on how close we are to destination
     # TODO: Take into account that exiting the crash site could also be done in reverse, so there might need to be additional
     #  data passed between planner and executor, or there needs to be some way to tell this that it is ok to drive in reverse
     #  during HEALING and CRASHED states. An example is additional_vars, that could be a list with parameters that can tell us
@@ -47,52 +40,48 @@ class Executor(object):
         speed = self.knowledge.retrieve_data('speed')
         target_speed = self.knowledge.retrieve_data('target_speed')
 
-        # calculate throttle and heading
-        control = carla.VehicleControl()
-        control.throttle = 0.0
-        control.steer = 0.0
-        control.brake = 0.0
-        control.hand_brake = False
+        # Initialize throttle and heading
+        control = self.vehicle.get_control()
+        # control.hand_brake = False
 
-        distance = self.knowledge.retrieve_data('distance')
-
-        lane_invasion = self.knowledge.retrieve_data('lane_invasion')
+        # Get the difference between the car's heading and the path to current destination and turn the wheel
+        # accordingly. To stabilize the car a little, the analyzer has a rudimentary threshold under which it always
+        # reports the difference as 0.
+        # TODO: Combine the threshold calculator and this calculator in the planner, and refine it. The car still wobbles a lot.
         heading_diff = self.knowledge.retrieve_data('heading_diff')
-        if heading_diff < 0:
-            control.steer = -0.4
-        elif heading_diff > 0:
-            control.steer = 0.4
+        heading_sign = -1 if heading_diff < 0 else 1
+        abs_heading_diff = min(abs(heading_diff), 10)
 
+        control.steer = abs_heading_diff / 20.0
+        control.steer = control.steer * heading_sign
+
+        # Calculate the difference between the current speed and the target speed, and adjust throttle accordingly.
+        # Since different cars responsed differently to the same amount of throttle, this needs to be extended with
+        # an adaptive feedback loop.
+        # TODO: Adaptive feedback
         speed_diff = target_speed - speed
         if target_speed == 0:
             control.throttle = 0.0
             control.brake = 1.0
         elif speed_diff > 0:
             control.throttle = min((speed_diff - 5) / target_speed + 0.7, 1.0) - abs(control.steer / 2)
+            control.brake = 0.0
 
         self.vehicle.apply_control(control)
         self.print_diagnostics()
 
+    # Function to print messages to the console for development and debugging
     def print_diagnostics(self):
         current = self.vehicle.get_control()
-        distance = self.knowledge.retrieve_data('distance')
-        distance_y = self.knowledge.retrieve_data('distance_y')
-        distance_x = self.knowledge.retrieve_data('distance_x')
-        heading = self.knowledge.retrieve_data('heading')
-        diff = self.knowledge.retrieve_data('heading_diff')
-
-        is_at_traffic_light = self.knowledge.retrieve_data('is_at_traffic_light')
-        traffic_light_state = self.knowledge.retrieve_data('traffic_light_state')
-        traffic_light_id = self.knowledge.retrieve_data('traffic_light_id')
-        speed_limit = self.knowledge.retrieve_data('speed_limit')
+        at_lights = self.knowledge.retrieve_data('at_lights')
         target_speed = self.knowledge.retrieve_data('target_speed')
         speed = self.knowledge.retrieve_data('speed')
 
-        world = self.vehicle.get_world()
-        m = world.get_map()
-        w = m.get_waypoint(self.knowledge.retrieve_data('location'))
+        # world = self.vehicle.get_world()
+        # m = world.get_map()
+        # w = m.get_waypoint(self.knowledge.retrieve_data('location'))
 
-        print("Target speed: {:3.2f}\t\tSpeed: {:3.2f}\t\tThrottle: {:3.2f}  Brake: {:3.2f}".format(target_speed, speed, current.throttle, current.brake))
+        print("At lights: {}\t\tTarget speed: {:3.2f}\t\tSpeed: {:3.2f}\t\tThrottle: {:3.2f}  Brake: {:3.2f}".format(at_lights, target_speed, speed, current.throttle, current.brake))
 
 
 
@@ -113,14 +102,13 @@ class Planner(object):
 
     # Function that is called at time intervals to update ai-state
     def update(self, time_elapsed):
-        is_at_traffic_light = self.knowledge.retrieve_data('is_at_traffic_light')
-        traffic_light_state = self.knowledge.retrieve_data('traffic_light_state')
-        distance = self.knowledge.retrieve_data('distance')
+        at_lights = self.knowledge.retrieve_data('at_lights')
+        distance_to_target = self.knowledge.retrieve_data('distance')
 
         self.update_plan()
         self.knowledge.update_destination(self.get_current_destination())
 
-        if is_at_traffic_light and traffic_light_state == "Red" or distance < 5:
+        if at_lights or distance_to_target < 5:
             self.knowledge.update_data('target_speed', 0)
         else:
             self.knowledge.update_data('target_speed', self.knowledge.retrieve_data('speed_limit'))
