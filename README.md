@@ -2,7 +2,7 @@
 
 ### Currently implemented
 - Calculating direction and distance to the current destination.
-- Moving in a straight line towards the current destination.
+- Navigation by waypoints.
 - Throttle that is adjusted according to the difference between current and desired speed.
 - Progressive steering that turns the wheel more the bigger the difference is between the current and desired direction.
 - Stopping at red lights.
