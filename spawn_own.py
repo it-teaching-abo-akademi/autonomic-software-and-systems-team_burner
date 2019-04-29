@@ -55,6 +55,20 @@ def main():
         blueprints = world.get_blueprint_library().filter('vehicle.*')
 
         blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
+        blueprints = [x for x in blueprints if not x.id.endswith('isetta')]
+
+        def draw_forward_vector():
+            start_transform = world.get_map().get_waypoint(actor_list[0].get_location()).transform
+            start_location = start_transform.location
+            f_vect = start_transform.get_forward_vector()
+            raiser = carla.Location(y=0.5)
+            line_end = start_location + carla.Location(x=f_vect.x * 5, y=f_vect.y * 5)
+            world.debug.draw_line(start_location + raiser, line_end + raiser, thickness=0.3, life_time=10.0)
+
+        def label_spawn_points():
+            wps = world.get_map().get_spawn_points()
+            for i in range(len(wps)):
+                world.debug.draw_string(wps[i].location, str(i))
 
         # This is definition of a callback function that will be called when the autopilot arrives at destination
         def route_finished(autopilot):
@@ -76,13 +90,18 @@ def main():
                 # We also register callback to know when the vehicle has arrived at it's destination
                 autopilot.set_route_finished_callback(route_finished)
                 print('spawned %r at %s' % (vehicle.type_id, transform.location))
-                return vehicle, autopilot
+                return autopilot
             return False
 
         spawn_points = list(world.get_map().get_spawn_points())
         print('found %d spawn points.' % len(spawn_points))
 
-        actor, controller = try_spawn_random_vehicle_at(spawn_points[2], spawn_points[0])
+        start = spawn_points[124]
+        end = spawn_points[104]
+#        end = world.get_map().get_waypoint(carla.Location(x=-30, y=167, z=1.8431)).transform
+        world.debug.draw_string(start.location, "Start")
+        world.debug.draw_string(end.location, "End")
+        controller = try_spawn_random_vehicle_at(start, end)
 
         # Infinite loop to update car status
         while True:
@@ -90,10 +109,13 @@ def main():
             render(controller.knowledge.retrieve_data('rgb_camera'))
 
             from pygame.locals import K_ESCAPE
+            from pygame.locals import K_l
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return True
                 elif event.type == pygame.KEYUP:
+                    if event.key == K_l:
+                        draw_forward_vector()
                     if event.key == K_ESCAPE:
                         return True
     finally:

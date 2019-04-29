@@ -68,6 +68,10 @@ class Knowledge(object):
     def get_location(self):
         return self.retrieve_data('location')
 
+    # Return current rotation of the vehicle
+    def get_rotation(self):
+        return self.retrieve_data('rotation').yaw
+
     def arrived_at(self, destination):
         return self.distance(self.get_location(), destination) < 5.0
 

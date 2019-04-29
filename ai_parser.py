@@ -28,6 +28,7 @@ class Monitor(object):
         self.update(0)
 
         world = self.vehicle.get_world()
+        self.knowledge.update_data('world', world)
 
         # Set up lane detector
         lane_sensor = world.get_blueprint_library().find('sensor.other.lane_detector')
@@ -57,7 +58,7 @@ class Monitor(object):
         destination = self.knowledge.get_current_destination()
         distance = location.distance(destination)
 
-        self.knowledge.update_data('location', location)
+        self.knowledge.update_data('location', self.vehicle.get_transform().location)
         self.knowledge.update_data('rotation', self.vehicle.get_transform().rotation)
         self.knowledge.update_data('velocity', self.vehicle.get_velocity()) # This is a vector that will be processed in the analyzer
         self.knowledge.update_data('distance', distance)
@@ -66,7 +67,6 @@ class Monitor(object):
 
         # at_lights is true iff the vehicle is at a traffic light that is red or yellow
         self.knowledge.update_data('at_lights', self.vehicle.is_at_traffic_light() and
-                                   str(self.vehicle.get_traffic_light_state()) == 'Red' or
                                    str(self.vehicle.get_traffic_light_state()) == 'Red' or
                                    str(self.vehicle.get_traffic_light_state()) == 'Yellow')
 
@@ -96,8 +96,8 @@ class Analyser(object):
         distance_x, distance_y = self.calculate_XY_distances()
 
         # Calculate the 2D-direction to the current destination, and the difference to our current direction
-        heading = math.degrees(math.atan2(distance_y, distance_x))
-        heading_diff = self.calculate_heading_diff(heading, self.knowledge.retrieve_data('rotation').yaw)
+        heading = math.atan2(distance_y, distance_x)
+        heading_diff = self.calculate_heading_diff(heading)
 
         self.knowledge.update_data('distance_x', distance_x)
         self.knowledge.update_data('distance_y', distance_y)
@@ -116,25 +116,16 @@ class Analyser(object):
         distance_y = destination.y - location.y
         return distance_x, distance_y
 
-    def calculate_heading_diff(self, heading, rotation):
-        abs_heading = math.fabs(heading)
-        abs_rotation = math.fabs(rotation)
-        heading_sign = 0 if heading == 0 else heading / abs_heading
-        rotation_sign = 0 if rotation == 0 else rotation / abs_rotation
+    def calculate_heading_diff(self, target_heading):
+        location = self.knowledge.get_location()
+        waypoint_here = self.knowledge.retrieve_data('world').get_map().get_waypoint(location)
+        wp_heading_vector = waypoint_here.transform.get_forward_vector()
+        wp_heading_angle = math.atan2(wp_heading_vector.y, wp_heading_vector.x)
 
-        if heading_sign == rotation_sign:
-            diff = heading - rotation
-        else:
-            diff = abs_heading + abs_rotation
+        diff = target_heading - wp_heading_angle
+        if diff > math.pi: diff = diff - (2 * math.pi)
+        if diff < - math.pi: diff = diff + (2 * math.pi)
 
-        if diff > 180:
-            diff = 360 - diff
-
-        diff_treshold = 5
-
-        distance_y = self.knowledge.retrieve_data('distance_y')
-        distance_x = self.knowledge.retrieve_data('distance_x')
-        if min(abs(distance_y), abs(distance_x)) < diff_treshold:
-            diff = 0
+        # print("Target: {:2.2f}\t\tCurrent: {:2.2f}\t\tDiff: {:2.2f}".format(target_heading, wp_heading_angle, diff))
 
         return diff

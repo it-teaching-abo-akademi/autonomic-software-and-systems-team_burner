@@ -4,6 +4,9 @@ import glob
 import os
 import sys
 from collections import deque
+
+import math
+
 from ai_knowledge import Status
 
 try:
@@ -13,7 +16,7 @@ try:
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
     pass
-
+import carla
 
 # Executor is responsible for moving the vehicle around
 # In this implementation it only needs to match the steering and speed so that we arrive at provided waypoints
@@ -49,11 +52,8 @@ class Executor(object):
         # reports the difference as 0.
         # TODO: Combine the threshold calculator and this calculator in the planner, and refine it. The car still wobbles a lot.
         heading_diff = self.knowledge.retrieve_data('heading_diff')
-        heading_sign = -1 if heading_diff < 0 else 1
-        abs_heading_diff = min(abs(heading_diff), 10)
 
-        control.steer = abs_heading_diff / 20.0
-        control.steer = control.steer * heading_sign
+        control.steer = heading_diff / 2
 
         # Calculate the difference between the current speed and the target speed, and adjust throttle accordingly.
         # Since different cars responsed differently to the same amount of throttle, this needs to be extended with
@@ -68,7 +68,7 @@ class Executor(object):
             control.brake = 0.0
 
         self.vehicle.apply_control(control)
-        self.print_diagnostics()
+        #self.print_diagnostics()
 
     # Function to print messages to the console for development and debugging
     def print_diagnostics(self):
@@ -84,8 +84,6 @@ class Executor(object):
         print("At lights: {}\t\tTarget speed: {:3.2f}\t\tSpeed: {:3.2f}\t\tThrottle: {:3.2f}  Brake: {:3.2f}".format(at_lights, target_speed, speed, current.throttle, current.brake))
 
 
-
-
 # Planner is responsible for creating a plan for moving around
 # In our case it creates a list of waypoints to follow so that vehicle arrives at destination
 # Alternatively this can also provide a list of waypoints to try avoid crashing or 'uncrash' itself
@@ -93,6 +91,9 @@ class Planner(object):
     def __init__(self, knowledge):
         self.knowledge = knowledge
         self.path = deque([])
+        self.world = self.knowledge.retrieve_data('world')
+        self.topology = self.world.get_map().get_topology()
+        self.waypoints = self.world.get_map().generate_waypoints(10)
 
     # Create a map of waypoints to follow to the destination and save it
     def make_plan(self, source, destination):
@@ -102,13 +103,15 @@ class Planner(object):
 
     # Function that is called at time intervals to update ai-state
     def update(self, time_elapsed):
+        location = self.knowledge.retrieve_data('location')
+
         at_lights = self.knowledge.retrieve_data('at_lights')
         distance_to_target = self.knowledge.retrieve_data('distance')
 
         self.update_plan()
         self.knowledge.update_destination(self.get_current_destination())
 
-        if at_lights or distance_to_target < 5:
+        if at_lights or distance_to_target < 5 or self.path.__len__() == 0:
             self.knowledge.update_data('target_speed', 0)
         else:
             self.knowledge.update_data('target_speed', self.knowledge.retrieve_data('speed_limit'))
@@ -149,6 +152,33 @@ class Planner(object):
     # TODO: Implementation
     def build_path(self, source, destination):
         self.path = deque([])
+        destination = carla.Location(x=destination.x, y=destination.y, z=destination.z)
+
+        # TODO: create path of waypoints from source to destination
+        def find_next(current, destination):
+            source = current.transform
+            md = source.location.distance(destination)
+            nexts = current.next(7.5)
+            for i in range(len(nexts)):
+                point = nexts[i]
+                dist = destination.distance(point.transform.location)
+                if dist < md:
+                    md = dist
+                    idx = i
+            if 'idx' not in locals():
+                return current
+            else:
+                return nexts[idx]
+
+        wp = self.world.get_map().get_waypoint(source.location)
+        nexts = []
+        while True:
+            next = find_next(wp, destination)
+            self.path.append(next.transform.location)
+            self.world.debug.draw_string(next.transform.location, "o", life_time=20.0)
+            if destination.distance(next.transform.location) < 5:
+                break
+            else:
+                wp = next
         self.path.append(destination)
-        # TODO: create path of waypoints from source to
         return self.path

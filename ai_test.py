@@ -53,7 +53,7 @@ def main():
     argparser.add_argument(
         '-m', '--milestone-number',
         metavar='M',
-        default=1,
+        default=2,
         type=int,
         help='Milestone number (default: 1)')
     args = argparser.parse_args()
