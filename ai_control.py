@@ -106,12 +106,11 @@ class Planner(object):
         location = self.knowledge.retrieve_data('location')
 
         at_lights = self.knowledge.retrieve_data('at_lights')
-        distance_to_target = self.knowledge.retrieve_data('distance')
 
         self.update_plan()
         self.knowledge.update_destination(self.get_current_destination())
 
-        if at_lights or distance_to_target < 5 or self.path.__len__() == 0:
+        if at_lights or len(self.path) == 0:
             self.knowledge.update_data('target_speed', 0)
         else:
             self.knowledge.update_data('target_speed', self.knowledge.retrieve_data('speed_limit'))
@@ -157,7 +156,7 @@ class Planner(object):
         # TODO: create path of waypoints from source to destination
         def find_next(current, destination):
             source = current.transform
-            md = source.location.distance(destination)
+            md = math.inf
             nexts = current.next(7.5)
             for i in range(len(nexts)):
                 point = nexts[i]
@@ -170,15 +169,47 @@ class Planner(object):
             else:
                 return nexts[idx]
 
+        # self.world.debug.draw_string(source.location, "START", life_time=20.0)
         wp = self.world.get_map().get_waypoint(source.location)
         nexts = []
         while True:
             next = find_next(wp, destination)
             self.path.append(next.transform.location)
-            self.world.debug.draw_string(next.transform.location, "o", life_time=20.0)
-            if destination.distance(next.transform.location) < 5:
+            # self.world.debug.draw_string(next.transform.location, "o", life_time=20.0)
+            if destination.distance(next.transform.location) < 10:
                 break
             else:
                 wp = next
+        # self.world.debug.draw_string(destination, "END", life_time=20.0)
         self.path.append(destination)
+        self.dijkstra()
         return self.path
+
+    def dijkstra(self):
+        if not self.knowledge.retrieve_data('graph'):
+            return
+
+        def make_distance_list():
+            distances = []
+            for edge in self.knowledge.retrieve_data('graph'):
+                start = edge[0]
+                end = edge[1]
+                distance = start.transform.location.distance(end.transform.location)
+                current_node = [start, end, distance]
+                distances.append(current_node)
+            return distances
+        distances = make_distance_list()
+
+        def make_vertex_list():
+            vertices = {}
+            for vertex in distances:
+                name = vertex[0]
+                known = False
+                distance = math.inf
+                path = None
+                if name not in vertices:
+                    vertices.update({name: [known, distance, path]})
+            return vertices
+        vertices = make_vertex_list()
+
+        # TODO: Fortsätt dijkstra's

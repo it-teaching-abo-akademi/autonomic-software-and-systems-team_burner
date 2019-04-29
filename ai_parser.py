@@ -97,7 +97,7 @@ class Analyser(object):
 
         # Calculate the 2D-direction to the current destination, and the difference to our current direction
         heading = math.atan2(distance_y, distance_x)
-        heading_diff = self.calculate_heading_diff(heading)
+        heading_diff = self.calculate_heading_diff()
 
         self.knowledge.update_data('distance_x', distance_x)
         self.knowledge.update_data('distance_y', distance_y)
@@ -116,16 +116,16 @@ class Analyser(object):
         distance_y = destination.y - location.y
         return distance_x, distance_y
 
-    def calculate_heading_diff(self, target_heading):
-        location = self.knowledge.get_location()
-        waypoint_here = self.knowledge.retrieve_data('world').get_map().get_waypoint(location)
-        wp_heading_vector = waypoint_here.transform.get_forward_vector()
-        wp_heading_angle = math.atan2(wp_heading_vector.y, wp_heading_vector.x)
+    def calculate_heading_diff(self):
+        current_location = self.knowledge.get_location()
+        current_angle = math.radians(self.knowledge.get_rotation())
+        next_waypoint = self.knowledge.get_current_destination()
 
-        diff = target_heading - wp_heading_angle
+        target_vector = carla.Vector3D(x=next_waypoint.x - current_location.x, y=next_waypoint.y - current_location.y)
+        target_angle = math.atan2(target_vector.y, target_vector.x)
+
+        diff = target_angle - current_angle
         if diff > math.pi: diff = diff - (2 * math.pi)
         if diff < - math.pi: diff = diff + (2 * math.pi)
-
-        # print("Target: {:2.2f}\t\tCurrent: {:2.2f}\t\tDiff: {:2.2f}".format(target_heading, wp_heading_angle, diff))
 
         return diff
