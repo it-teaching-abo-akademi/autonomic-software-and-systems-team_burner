@@ -4,11 +4,9 @@ import glob
 import os
 import sys
 from collections import deque
-
 import math
-
 from ai_knowledge import Status
-
+import pandas as pd
 try:
     sys.path.append(glob.glob('**/*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -68,20 +66,6 @@ class Executor(object):
             control.brake = 0.0
 
         self.vehicle.apply_control(control)
-        #self.print_diagnostics()
-
-    # Function to print messages to the console for development and debugging
-    def print_diagnostics(self):
-        current = self.vehicle.get_control()
-        at_lights = self.knowledge.retrieve_data('at_lights')
-        target_speed = self.knowledge.retrieve_data('target_speed')
-        speed = self.knowledge.retrieve_data('speed')
-
-        # world = self.vehicle.get_world()
-        # m = world.get_map()
-        # w = m.get_waypoint(self.knowledge.retrieve_data('location'))
-
-        print("At lights: {}\t\tTarget speed: {:3.2f}\t\tSpeed: {:3.2f}\t\tThrottle: {:3.2f}  Brake: {:3.2f}".format(at_lights, target_speed, speed, current.throttle, current.brake))
 
 
 # Planner is responsible for creating a plan for moving around
@@ -176,40 +160,10 @@ class Planner(object):
             next = find_next(wp, destination)
             self.path.append(next.transform.location)
             # self.world.debug.draw_string(next.transform.location, "o", life_time=20.0)
-            if destination.distance(next.transform.location) < 10:
+            if destination.distance(next.transform.location) < 5:
                 break
             else:
                 wp = next
         # self.world.debug.draw_string(destination, "END", life_time=20.0)
         self.path.append(destination)
-        self.dijkstra()
         return self.path
-
-    def dijkstra(self):
-        if not self.knowledge.retrieve_data('graph'):
-            return
-
-        def make_distance_list():
-            distances = []
-            for edge in self.knowledge.retrieve_data('graph'):
-                start = edge[0]
-                end = edge[1]
-                distance = start.transform.location.distance(end.transform.location)
-                current_node = [start, end, distance]
-                distances.append(current_node)
-            return distances
-        distances = make_distance_list()
-
-        def make_vertex_list():
-            vertices = {}
-            for vertex in distances:
-                name = vertex[0]
-                known = False
-                distance = math.inf
-                path = None
-                if name not in vertices:
-                    vertices.update({name: [known, distance, path]})
-            return vertices
-        vertices = make_vertex_list()
-
-        # TODO: Fortsätt dijkstra's
