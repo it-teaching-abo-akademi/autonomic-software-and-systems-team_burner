@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 # Script for testing the AI. Shows the world in a first person perspective from a camera that's mounted on the car.
-# The starting point and destination can be changed on line 125 (or somewhere in the vicinity, depending on the amount
-# of code that's added or removed) that says
-#           try_spawn_random_vehicle_at(spawn_points[2], spawn_points[0])
+# The starting point and destination can be changed on line 78 (or somewhere in the vicinity, depending on the amount
+# of code that's added or removed) that says: try_spawn_random_vehicle_at(spawn_points[2], spawn_points[0])
 #
 
 import glob
