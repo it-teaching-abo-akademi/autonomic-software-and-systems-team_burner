@@ -9,10 +9,11 @@
 - Following speed limits somewhat. More powerful cars might go a few km/h over the limit with the current formula for calculating throttle, but perhaps that only makes the AI more human... ;)
 
 ### In the works
-- Using Dijkstra's algorithm with the map topology to determine the shortest path to the current destination while still following the traffic rules (i.e. driving on the right side of the road and not going offroad except when explicitly instructed, etc.).
+- A navigator that uses the map topology and Dijkstra's algorithm to determine the shortest path to the current destination while still following the traffic rules (i.e. driving on the right side of the road and not going offroad except when explicitly instructed, etc.).
+- Detecting and reacting to crash threats.
 
 ### Needed
-- Detecting and reacting to crash threats.
 - Getting the car back on the path after a crash.
 - Taking traffic lights better into account. At the moment the car often stops on the pedestrian crossing, which is quite bad.
 - Adaptive steering. The car wobbles a lot at higher speeds.
+- Adaptive throttle so that all cars keep the target speed as instructed by the planner, no matter how powerful motor they have.
