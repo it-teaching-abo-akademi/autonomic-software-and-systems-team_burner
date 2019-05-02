@@ -132,16 +132,14 @@ class Planner(object):
         # otherwise destination is same as current position
         return self.knowledge.get_location()
 
-    # TODO: Implementation
+    # Create a path of waypoints from the current location to the current destination
     def build_path(self, source, destination):
         self.path = deque([])
-        destination = carla.Location(x=destination.x, y=destination.y, z=destination.z)
+        destination_wp = carla.Location(x=destination.x, y=destination.y, z=destination.z)
 
-        # TODO: create path of waypoints from source to destination
         def find_next(current, destination):
-            source = current.transform
             md = math.inf
-            nexts = current.next(7.5)
+            nexts = current.next(5)
             for i in range(len(nexts)):
                 point = nexts[i]
                 dist = destination.distance(point.transform.location)
@@ -153,17 +151,22 @@ class Planner(object):
             else:
                 return nexts[idx]
 
-        # self.world.debug.draw_string(source.location, "START", life_time=20.0)
-        wp = self.world.get_map().get_waypoint(source.location)
-        nexts = []
+        current_wp = self.world.get_map().get_waypoint(source.location)
         while True:
-            next = find_next(wp, destination)
-            self.path.append(next.transform.location)
-            # self.world.debug.draw_string(next.transform.location, "o", life_time=20.0)
-            if destination.distance(next.transform.location) < 5:
+            next_point = find_next(current_wp, destination_wp)
+            self.path.append(next_point.transform.location)
+            if destination_wp.distance(next_point.transform.location) <= 7.5:
                 break
             else:
-                wp = next
-        # self.world.debug.draw_string(destination, "END", life_time=20.0)
-        self.path.append(destination)
+                current_wp = next_point
+
+        debug = True
+        if debug:
+            debug_markers_lifetime = 20.0
+            self.world.debug.draw_string(source.location, "START", life_time=debug_markers_lifetime)
+            for wp in self.path:
+                self.world.debug.draw_string(wp, "o", life_time=debug_markers_lifetime)
+            self.world.debug.draw_string(destination_wp, "END", life_time=debug_markers_lifetime)
+
+        self.path.append(destination_wp)
         return self.path
