@@ -9,4 +9,4 @@
 - Following speed limits somewhat. More powerful cars might go a few km/h over the limit with the current formula for calculating throttle, but perhaps that only makes the AI more human... ;)
 
 ### In the works
-- Using Dijkstra's algorithm with the map topology to determin the shortest path to the current destination while still following the traffic rules (i.e. driving on the right side of the road and not going offroad except when explicitly instructed, etc.).
+- Using Dijkstra's algorithm with the map topology to determine the shortest path to the current destination while still following the traffic rules (i.e. driving on the right side of the road and not going offroad except when explicitly instructed, etc.).
