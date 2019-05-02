@@ -15,5 +15,5 @@
 ### Needed
 - Getting the car back on the path after a crash.
 - Taking traffic lights better into account. At the moment the car often stops on the pedestrian crossing, which is quite bad.
-- Adaptive steering. The car wobbles a lot at higher speeds.
+- Adaptive steering. Currently the casr wobble a lot at higher speeds.
 - Adaptive throttle so that all cars keep the target speed as instructed by the planner, no matter how powerful motor they have.
