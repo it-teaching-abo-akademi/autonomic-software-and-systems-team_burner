@@ -5,6 +5,7 @@ import os
 import sys
 from collections import deque
 import math
+
 from ai_knowledge import Status
 import pandas as pd
 try:
@@ -43,14 +44,12 @@ class Executor(object):
 
         # Initialize throttle and heading
         control = self.vehicle.get_control()
-        # control.hand_brake = False
 
         # Get the difference between the car's heading and the path to current destination and turn the wheel
         # accordingly. To stabilize the car a little, the analyzer has a rudimentary threshold under which it always
         # reports the difference as 0.
         # TODO: Combine the threshold calculator and this calculator in the planner, and refine it. The car still wobbles a lot.
         heading_diff = self.knowledge.retrieve_data('heading_diff')
-
         control.steer = heading_diff / 2
 
         # Calculate the difference between the current speed and the target speed, and adjust throttle accordingly.
@@ -76,8 +75,6 @@ class Planner(object):
         self.knowledge = knowledge
         self.path = deque([])
         self.world = self.knowledge.retrieve_data('world')
-        self.topology = self.world.get_map().get_topology()
-        self.waypoints = self.world.get_map().generate_waypoints(10)
 
     # Create a map of waypoints to follow to the destination and save it
     def make_plan(self, source, destination):
@@ -137,35 +134,34 @@ class Planner(object):
         self.path = deque([])
         destination_wp = carla.Location(x=destination.x, y=destination.y, z=destination.z)
 
-        def find_next(current, destination):
+        def find_next(current, destination, search_distance):
+            found = None
             md = math.inf
-            nexts = current.next(5)
-            for i in range(len(nexts)):
-                point = nexts[i]
+            nexts = current.next(search_distance)
+            for point in nexts:
                 dist = destination.distance(point.transform.location)
                 if dist < md:
                     md = dist
-                    idx = i
-            if 'idx' not in locals():
-                return current
-            else:
-                return nexts[idx]
+                    found = point
+            return found
 
+        debug = True
         current_wp = self.world.get_map().get_waypoint(source.location)
         while True:
-            next_point = find_next(current_wp, destination_wp)
+            if 'next_point' in locals():
+                previous_point = next_point
+            next_point = find_next(current_wp, destination_wp, 5)
+
             self.path.append(next_point.transform.location)
+            color = carla.Color(r=0,b=255,g=0) if next_point.is_intersection else carla.Color(r=255,b=0,g=0)
+            if debug: self.world.debug.draw_string(next_point.transform.location, str(next_point.road_id), life_time=20.0, color=color)
             if destination_wp.distance(next_point.transform.location) <= 7.5:
                 break
             else:
                 current_wp = next_point
-
-        debug = True
         if debug:
             debug_markers_lifetime = 20.0
             self.world.debug.draw_string(source.location, "START", life_time=debug_markers_lifetime)
-            for wp in self.path:
-                self.world.debug.draw_string(wp, "o", life_time=debug_markers_lifetime)
             self.world.debug.draw_string(destination_wp, "END", life_time=debug_markers_lifetime)
 
         self.path.append(destination_wp)

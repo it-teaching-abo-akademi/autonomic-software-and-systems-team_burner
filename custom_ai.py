@@ -17,7 +17,6 @@ import ai_knowledge as data
 import ai_control as control
 import ai_parser as parser
 import time
-import navigator
 
 
 # Manager Script
@@ -29,7 +28,6 @@ class Autopilot(object):
     self.analyser = parser.Analyser(self.knowledge)
     self.monitor = parser.Monitor(self.knowledge, self.vehicle)
     self.planner = control.Planner(self.knowledge)
-    self.navigator = navigator.Navigator(self.knowledge, self.vehicle.get_world().get_map().get_topology())
     self.executor = control.Executor(self.knowledge, self.vehicle)
     self.prev_time = int(round(time.time() * 1000))
     self.route_finished = lambda *_, **__: None
