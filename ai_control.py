@@ -135,10 +135,10 @@ class Planner(object):
             left_distance = math.inf
             found = None
             min_distance = math.inf
-            nexts = current.next(5)
+            nexts = current.next(10)
 
             for point in nexts:
-                next_nexts = point.next(10)
+                next_nexts = point.next(5)
                 for next_point in next_nexts:
                     next_dist = destination.distance(next_point.transform.location)
                     if next_dist < min_distance:
