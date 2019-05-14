@@ -2,7 +2,7 @@
 
 ### Currently implemented
 - Calculating direction and distance to the current destination.
-- Navigation by waypoints. Able to navigate between two points on the map, but often takes some serious detours.
+- Navigation by waypoints should work OK. I have not been able to test it thoroughly, though, since something is causing segmentation faults when I try to get the waypoint for the neighbouring lane.
 - Throttle that is adjusted according to the difference between current and desired speed.
 - Progressive steering that turns the wheel more the bigger the difference is between the current and desired direction.
 - Stopping at red lights.
