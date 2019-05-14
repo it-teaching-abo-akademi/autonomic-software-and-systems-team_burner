@@ -103,11 +103,12 @@ class Analyser(object):
         self.knowledge.update_data('distance_y', distance_y)
         self.knowledge.update_data('heading', heading)
         self.knowledge.update_data('heading_diff', heading_diff)
-        self.knowledge.update_data('speed', self.velocity_to_speed(self.knowledge.retrieve_data('velocity')))
+        self.knowledge.update_data('speed', self.get_speed())
         return
 
-    def velocity_to_speed(self, velocity):
-        return math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2) * 3.6
+    def get_speed(self):
+        velocity = self.knowledge.retrieve_data('velocity')
+        return math.sqrt(velocity.x ** 2.0 + velocity.y ** 2.0 + velocity.z ** 2.0) * 3.6
 
     def calculate_XY_distances(self):
         location = self.knowledge.retrieve_data('location')

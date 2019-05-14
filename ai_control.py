@@ -3,11 +3,10 @@
 import glob
 import os
 import sys
-from collections import deque, namedtuple
+from collections import deque
 import math
 
 from ai_knowledge import Status
-import pandas as pd
 try:
     sys.path.append(glob.glob('**/*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -16,6 +15,7 @@ try:
 except IndexError:
     pass
 import carla
+
 
 # Executor is responsible for moving the vehicle around
 # In this implementation it only needs to match the steering and speed so that we arrive at provided waypoints
@@ -82,8 +82,6 @@ class Planner(object):
 
     # Function that is called at time intervals to update ai-state
     def update(self, time_elapsed):
-        location = self.knowledge.retrieve_data('location')
-
         at_lights = self.knowledge.retrieve_data('at_lights')
 
         self.update_plan()
@@ -132,65 +130,68 @@ class Planner(object):
         self.path = deque([])
         destination_wp = carla.Location(x=destination.x, y=destination.y, z=destination.z)
 
-        def find_next(current, destination, search_distance):
+        def find_next(current, destination):
+            right_distance = math.inf
+            left_distance = math.inf
             found = None
-            md = math.inf
-            nexts = current.next(search_distance)
+            min_distance = math.inf
+            nexts = current.next(5)
+
             for point in nexts:
-                dist = destination.distance(point.transform.location)
-                if dist < md:
-                    md = dist
-                    found = point
-            return (found, md) if found is not None else (self.get_waypoint(destination), 0)
+                next_nexts = point.next(10)
+                for next_point in next_nexts:
+                    next_dist = destination.distance(next_point.transform.location)
+                    if next_dist < min_distance:
+                        min_distance = next_dist
+                        found = point
+
+                if point.lane_change == 1 or point.lane_change == 3:
+                    right_point = point.get_right_lane()
+                    if right_point is not None:
+                        right_point = self.get_waypoint(right_point.transform.location)
+                        right_distance = right_point.transform.location.distance(destination_wp)
+                if point.lane_change == 2 or point.lane_change == 3:
+                    left_point = point.get_left_lane()
+                    if left_point is not None:
+                        left_point = self.get_waypoint(left_point.transform.location)
+                        left_distance = left_point.transform.location.distance(destination_wp)
+
+                if right_distance < min_distance and right_distance < left_distance:
+                    found = right_point
+                    min_distance = right_distance
+                elif left_distance < min_distance and left_distance < right_distance:
+                    found = left_point
+                    min_distance = left_distance
+
+            return found if found is not None else self.get_waypoint(destination)
 
         next_point = self.get_waypoint(source.location)
 
         while destination_wp.distance(next_point.transform.location) > 5:
-            next_point, distance = find_next(next_point, destination_wp, 5)
-            right_distance = math.inf
-            left_distance = math.inf
-
-            print(next_point.lane_id)
-
-            if next_point.lane_change == 1 or next_point.lane_change == 3:
-                right_point = self.get_waypoint(next_point.get_right_lane().transform.location)
-                right_distance = right_point.transform.location.distance(destination_wp)
-            if next_point.lane_change == 2 or next_point.lane_change == 3:
-                left_point = self.get_waypoint(next_point.get_left_lane().transform.location)
-                left_distance = left_point.transform.location.distance(destination_wp)
-
-            if right_distance < distance and right_distance < left_distance:
-                next_point = right_point
-                print(" -> {}".format(next_point.lane_id))
-            elif left_distance < distance and left_distance < right_distance:
-                next_point = left_point
-                print(" -> {}".format(next_point.lane_id))
-
+            next_point.get_right_lane()
+            next_point = find_next(next_point, destination_wp)
             self.path.append(next_point.transform.location)
 
         self.path.append(destination_wp)
 
-        double_step = deque([])
-        double_step.append(self.path[0])
-        previous = self.path[0]
-
-        # Remove waypoints on straight roads except from the beginning and the end
-        for point in self.path:
-            current_point = self.get_waypoint(point)
-            if current_point.transform.rotation.yaw != self.get_waypoint(previous).transform.rotation.yaw:
-                if current_point.lane_width > 2.0 and not current_point.is_intersection:
-                    perpend = math.radians(current_point.transform.rotation.yaw) + (math.pi / 2)
-                    x = math.cos(perpend) * 0.5
-                    y = math.sin(perpend) * 0.5
-                    point += carla.Location(x=x, y=y)
-                double_step.append(point)
-                previous = point
-
-        final_point = self.path[len(self.path) - 1]
-        if double_step[len(double_step) - 1] != final_point:
-            double_step.append(final_point)
-        self.draw_debug_path(double_step)
-        return double_step
+        # double_step = deque([])
+        # double_step.append(self.path[0])
+        # previous = self.path[0]
+        #
+        # # Remove waypoints on straight roads except from the beginning and the end
+        # for point in self.path:
+        #     current_point = self.get_waypoint(point)
+        #     if current_point.transform.rotation.yaw != self.get_waypoint(previous).transform.rotation.yaw:
+        #         double_step.append(point)
+        #         previous = point
+        #
+        # final_point = self.path[len(self.path) - 1]
+        # if double_step[len(double_step) - 1] != final_point:
+        #     double_step.append(final_point)
+        # self.draw_debug_path(double_step)
+        # return double_step
+        self.draw_debug_path(self.path)
+        return self.path
 
     def draw_debug_path(self, path):
         debug_markers_lifetime = 20.0
