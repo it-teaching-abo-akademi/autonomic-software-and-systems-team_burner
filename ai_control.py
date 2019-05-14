@@ -3,7 +3,7 @@
 import glob
 import os
 import sys
-from collections import deque
+from collections import deque, namedtuple
 import math
 
 from ai_knowledge import Status
@@ -47,7 +47,7 @@ class Executor(object):
 
         # TODO: Combine the threshold calculator and this calculator in the planner, and refine it. The car still wobbles a lot.
         heading_diff = self.knowledge.retrieve_data('heading_diff')
-        control.steer = heading_diff / (speed / 15 if speed != 0 else 2)
+        control.steer = heading_diff / 2#(speed / 15 if speed != 0 else 2)
 
         # Calculate the difference between the current speed and the target speed, and adjust throttle accordingly.
         # Since different cars responsed differently to the same amount of throttle, this needs to be extended with
@@ -141,19 +141,32 @@ class Planner(object):
                 if dist < md:
                     md = dist
                     found = point
-            return found
+            return (found, md) if found is not None else (self.get_waypoint(destination), 0)
 
-        current_wp = self.world.get_map().get_waypoint(source.location)
-        while True:
-            if 'next_point' in locals():
-                previous_point = next_point
-            next_point = find_next(current_wp, destination_wp, 5)
+        next_point = self.get_waypoint(source.location)
+
+        while destination_wp.distance(next_point.transform.location) > 5:
+            next_point, distance = find_next(next_point, destination_wp, 5)
+            right_distance = math.inf
+            left_distance = math.inf
+
+            print(next_point.lane_id)
+
+            if next_point.lane_change == 1 or next_point.lane_change == 3:
+                right_point = self.get_waypoint(next_point.get_right_lane().transform.location)
+                right_distance = right_point.transform.location.distance(destination_wp)
+            if next_point.lane_change == 2 or next_point.lane_change == 3:
+                left_point = self.get_waypoint(next_point.get_left_lane().transform.location)
+                left_distance = left_point.transform.location.distance(destination_wp)
+
+            if right_distance < distance and right_distance < left_distance:
+                next_point = right_point
+                print(" -> {}".format(next_point.lane_id))
+            elif left_distance < distance and left_distance < right_distance:
+                next_point = left_point
+                print(" -> {}".format(next_point.lane_id))
 
             self.path.append(next_point.transform.location)
-            if destination_wp.distance(next_point.transform.location) <= 7.5:
-                break
-            else:
-                current_wp = next_point
 
         self.path.append(destination_wp)
 
@@ -161,6 +174,7 @@ class Planner(object):
         double_step.append(self.path[0])
         previous = self.path[0]
 
+        # Remove waypoints on straight roads except from the beginning and the end
         for point in self.path:
             current_point = self.get_waypoint(point)
             if current_point.transform.rotation.yaw != self.get_waypoint(previous).transform.rotation.yaw:
@@ -183,7 +197,7 @@ class Planner(object):
         self.world.debug.draw_string(path[0], "START", life_time=debug_markers_lifetime)
         for point in path:
             color = carla.Color(r=0,b=255,g=0) if self.get_waypoint(point).is_intersection else carla.Color(r=255,b=0,g=0)
-            self.world.debug.draw_string(point, str(self.get_waypoint(point).road_id), life_time=20.0, color=color)
+            self.world.debug.draw_point(point + carla.Location(y=0.5), 0.05, life_time=debug_markers_lifetime, color=color)
         self.world.debug.draw_string(path[len(path) - 1], "END", life_time=debug_markers_lifetime)
 
     def get_waypoint(self, location):
