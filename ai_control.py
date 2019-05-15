@@ -49,7 +49,7 @@ class Executor(object):
 
         # TODO: Combine the threshold calculator and this calculator in the planner, and refine it. The car still wobbles a lot.
         heading_diff = self.knowledge.retrieve_data('heading_diff')
-        control.steer = heading_diff / 2#(speed / 15 if speed != 0 else 2)
+        control.steer = heading_diff / 2
 
         # Calculate the difference between the current speed and the target speed, and adjust throttle accordingly.
         # Since different cars responsed differently to the same amount of throttle, this needs to be extended with
@@ -59,8 +59,14 @@ class Executor(object):
         if target_speed == 0:
             control.throttle = 0.0
             control.brake = 1.0
+        elif speed_diff == 0:
+            control.throttle = 0
+            control.brake = 0
+        elif speed_diff < 0:
+            control.throttle = 0
+            control.brake = 0.3
         elif speed_diff > 0:
-            control.throttle = min((speed_diff - 5) / target_speed + 0.7, 1.0) - abs(control.steer / 2)
+            control.throttle = min((speed_diff / target_speed) + 0.2 , 1.0) - abs(control.steer)
             control.brake = 0.0
 
         self.vehicle.apply_control(control)
@@ -129,9 +135,6 @@ class Planner(object):
 
     # Create a path of waypoints from the current location to the current destination
     def build_path(self, source, destination):
-        self.path = deque([])
-        destination_wp = carla.Location(x=destination.x, y=destination.y, z=destination.z)
-
         def find_next(current, destination):
             right_distance = math.inf
             left_distance = math.inf
@@ -148,17 +151,13 @@ class Planner(object):
                         found = point
 
                 if found.lane_change == carla.LaneChange.Right or point.lane_change == carla.LaneChange.Both:
-                    right_point = found.get_right_lane()
-                    print("FOUND RIGHT")
-                    right_point = self.get_waypoint(right_point.transform.location)
+                    right_point = self.get_waypoint(found.get_right_lane().transform.location)
                     right_distance = right_point.transform.location.distance(destination_wp)
-                if found.lane_change == carla.LaneChange.Left or point.lane_change == carla.LaneChange.Both:
-                    left_point = found.get_left_lane()
-                    print("FOUND LEFT")
-                    left_point = self.get_waypoint(left_point.transform.location)
+                if found.lane_change == carla.LaneChange.Left or found.lane_change == carla.LaneChange.Both:
+                    left_point = self.get_waypoint(found.get_left_lane().transform.location)
                     left_distance = left_point.transform.location.distance(destination_wp)
 
-                if right_distance <= min_distance and right_distance <= left_distance:
+                if right_distance < min_distance and right_distance < left_distance:
                     found = right_point
                     min_distance = right_distance
                 elif left_distance < min_distance and left_distance < right_distance:
@@ -167,32 +166,18 @@ class Planner(object):
 
             return found if found is not None else self.get_waypoint(destination)
 
+        destination_wp = self.get_waypoint(destination).transform.location
+        source = self.get_waypoint(source.location).transform
+
+        self.path = deque([])
         next_point = self.get_waypoint(source.location)
+        self.path.append(source.location)
 
         while destination_wp.distance(next_point.transform.location) > 5:
-            next_point.get_right_lane()
             next_point = find_next(next_point, destination_wp)
             self.path.append(next_point.transform.location)
-
         self.path.append(destination_wp)
-
-        # double_step = deque([])
-        # double_step.append(self.path[0])
-        # previous = self.path[0]
-        #
-        # # Remove waypoints on straight roads except from the beginning and the end
-        # for point in self.path:
-        #     current_point = self.get_waypoint(point)
-        #     if current_point.transform.rotation.yaw != self.get_waypoint(previous).transform.rotation.yaw:
-        #         double_step.append(point)
-        #         previous = point
-        #
-        # final_point = self.path[len(self.path) - 1]
-        # if double_step[len(double_step) - 1] != final_point:
-        #     double_step.append(final_point)
-        # self.draw_debug_path(double_step)
-        # return double_step
-        self.draw_debug_path(self.path)
+#        self.draw_debug_path(self.path)
         return self.path
 
     def draw_debug_path(self, path):
