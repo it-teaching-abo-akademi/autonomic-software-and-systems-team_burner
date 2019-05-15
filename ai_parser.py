@@ -42,14 +42,14 @@ class Monitor(object):
 
         # Set up a camera to enable rendering a first person perspective view, and to be able to do object recognition
         # if the need arises.
-        camera_rgb_blueprint = world.get_blueprint_library().find('sensor.camera.rgb')
-        camera_rgb_blueprint.set_attribute('image_size_x', '960')
-        camera_rgb_blueprint.set_attribute('image_size_y', '540')
-        camera_rgb_blueprint.set_attribute('fov', '110')
-        camera_rgb_blueprint.set_attribute('sensor_tick', '0.1')
-        camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
-        self.camera_rgb = world.spawn_actor(camera_rgb_blueprint, camera_transform, attach_to=self.vehicle)
-        self.camera_rgb.listen(lambda image: self.knowledge.update_data('rgb_camera', image))
+        # camera_rgb_blueprint = world.get_blueprint_library().find('sensor.camera.rgb')
+        # camera_rgb_blueprint.set_attribute('image_size_x', '960')
+        # camera_rgb_blueprint.set_attribute('image_size_y', '540')
+        # camera_rgb_blueprint.set_attribute('fov', '110')
+        # camera_rgb_blueprint.set_attribute('sensor_tick', '0.1')
+        # camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
+        # self.camera_rgb = world.spawn_actor(camera_rgb_blueprint, camera_transform, attach_to=self.vehicle)
+        # self.camera_rgb.listen(lambda image: self.knowledge.update_data('rgb_camera', image))
 
     # Function that is called at time intervals to update ai-state
     def update(self, time_elapsed):
