@@ -7,12 +7,14 @@ import math
 import weakref
 
 try:
-    sys.path.append(glob.glob('**/*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('**/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
-    pass
+    print("Can't find CARLA")
+    exit(0)
+
 import carla
 
 
@@ -31,7 +33,7 @@ class Monitor(object):
         self.knowledge.update_data('world', world)
 
         # Set up lane detector
-        lane_sensor = world.get_blueprint_library().find('sensor.other.lane_detector')
+        lane_sensor = world.get_blueprint_library().find('sensor.other.lane_invasion')
         self.lane_detector = world.spawn_actor(lane_sensor, carla.Transform(), attach_to=self.vehicle)
         self.lane_detector.listen(lambda event: Monitor._on_invasion(weak_self, event))
 

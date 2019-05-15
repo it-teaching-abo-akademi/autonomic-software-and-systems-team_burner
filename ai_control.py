@@ -8,12 +8,14 @@ import math
 
 from ai_knowledge import Status
 try:
-    sys.path.append(glob.glob('**/*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('**/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
-    pass
+    print("Can't find CARLA")
+    exit(0)
+
 import carla
 
 
