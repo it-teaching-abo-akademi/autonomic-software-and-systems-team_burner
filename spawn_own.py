@@ -96,6 +96,9 @@ def main():
 
         start = spawn_points[124]
         end = spawn_points[36]
+        ex2 = [carla.Transform(location=carla.Location(42.5959, -4.3443, 1.8431), rotation=carla.Rotation(yaw=180)), carla.Transform(location=carla.Location(x=-30, y=167, z=1.8431))]
+        start, end = ex2
+        end = world.get_map().get_waypoint(end.location).transform
         controller = try_spawn_random_vehicle_at(start, end)
 
         # Infinite loop to update car status
@@ -109,8 +112,6 @@ def main():
                 if event.type == pygame.QUIT:
                     return True
                 elif event.type == pygame.KEYUP:
-                    if event.key == K_l:
-                        draw_forward_vector()
                     if event.key == K_ESCAPE:
                         return True
     finally:
@@ -119,6 +120,10 @@ def main():
         pygame.quit()
 
 
-main()
-print('\ndone.')
-sys.exit(0)
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print('\ndone.')

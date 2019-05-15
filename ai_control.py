@@ -140,25 +140,25 @@ class Planner(object):
             nexts = current.next(10)
 
             for point in nexts:
-                next_nexts = point.next(5)
+                next_nexts = point.next(20)
                 for next_point in next_nexts:
                     next_dist = destination.distance(next_point.transform.location)
                     if next_dist < min_distance:
                         min_distance = next_dist
                         found = point
 
-                if point.lane_change == 1 or point.lane_change == 3:
-                    right_point = point.get_right_lane()
-                    if right_point is not None:
-                        right_point = self.get_waypoint(right_point.transform.location)
-                        right_distance = right_point.transform.location.distance(destination_wp)
-                if point.lane_change == 2 or point.lane_change == 3:
-                    left_point = point.get_left_lane()
-                    if left_point is not None:
-                        left_point = self.get_waypoint(left_point.transform.location)
-                        left_distance = left_point.transform.location.distance(destination_wp)
+                if found.lane_change == carla.LaneChange.Right or point.lane_change == carla.LaneChange.Both:
+                    right_point = found.get_right_lane()
+                    print("FOUND RIGHT")
+                    right_point = self.get_waypoint(right_point.transform.location)
+                    right_distance = right_point.transform.location.distance(destination_wp)
+                if found.lane_change == carla.LaneChange.Left or point.lane_change == carla.LaneChange.Both:
+                    left_point = found.get_left_lane()
+                    print("FOUND LEFT")
+                    left_point = self.get_waypoint(left_point.transform.location)
+                    left_distance = left_point.transform.location.distance(destination_wp)
 
-                if right_distance < min_distance and right_distance < left_distance:
+                if right_distance <= min_distance and right_distance <= left_distance:
                     found = right_point
                     min_distance = right_distance
                 elif left_distance < min_distance and left_distance < right_distance:
